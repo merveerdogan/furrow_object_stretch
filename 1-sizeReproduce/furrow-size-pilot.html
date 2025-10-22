@@ -18,7 +18,7 @@ Configuration details:
 
 <head>
     <meta charset="utf-8" />
-    <title>Psychology Experiment</title>
+    <title>sPsychology Experiment</title>
     <script src='https://perceptionexperiments.net/ME/jspsych/jspsych.js'></script>
     <link href="https://perceptionexperiments.net/ME/jspsych/css/jspsych.css" rel="stylesheet" type="text/css">
 
@@ -83,7 +83,7 @@ Configuration details:
         var test = {
             type: 'sizeReproductionTask',
             controlMode: 'keys',
-            instructionText: '<div style="font-size: 24px;">Use the up and down arrow keys to adjust the size of the object below until <p>it matches the size of the moving object <strong>at the moment it stopped</strong></div>',
+            instructionText: '<div style="font-size: 24px;">Use the up and down arrow keys to adjust the size of the object below until <p>it matches the size of the moving object <strong>at the moment it stopped.</strong><p><p>Press Enter to submit your response.</div>',
             position: function (position) {
                 allDisplayData = jsPsych.data.get().filter({ trial_category: 'display' }).values();
                 var lastDisplayTrial = allDisplayData[allDisplayData.length - 1];
