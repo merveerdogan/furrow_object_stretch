@@ -148,6 +148,7 @@ jsPsych.plugins["furrowDispCreator"] = (function () {
         canvas.width = w;
         canvas.height = h;
 
+        document.body.style.overflow = 'hidden';
         document.body.style.cursor = 'none'; // <-- hide the cursor
         /*
         ============================
