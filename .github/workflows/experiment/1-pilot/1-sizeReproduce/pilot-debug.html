@@ -1,0 +1,283 @@
+<!--
+Merve Erdogan - 10.17.25
+Furrow Illusion - Object Stretch Pilot
+Task: Size Reproduction
+------------------------------------------
+Configuration details:
+- File Locations:
+    - JsPsych Plugin Imports: scriptTagConfig.js (../99-commonJS/scriptTagConfig.js)
+    - Conditions & Parameters: params_general.js (expJS/params_general.js)
+     - General Functions: functions.js (../99-commonJS/functions.js)
+    - Trial Display Creator: furrowDispCreator.js (../99-commonJS/furrowDispCreator.js)
+    - Size Reproduction Task: sizeReproductionTask.js (../99-commonJS/sizeReproductionTask.js)
+------------------------------------------
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Yale Psychology Experiment</title>
+    <script src='https://perceptionexperiments.net/ME/jspsych/jspsych.js'></script>
+    <link href="https://perceptionexperiments.net/ME/jspsych/css/jspsych.css" rel="stylesheet" type="text/css">
+
+    <!-- Special JS files for this experiment -->
+    <script defer src="../99-commonJS/scriptTagConfig.js"></script>
+    <script src="expJS/params_general.js"></script>
+    <script src="../99-commonJS/functions.js"></script>
+    <script src="../99-commonJS/furrowDispCreator.js"></script>
+    <script src="../99-commonJS/sizeReproductionTask.js"></script>
+</head>
+
+<body style="background-color:grey;"></body>
+<script>
+    /*
+    ===============================================================
+    EXPERIMENT START PROCEDURE
+    ===============================================================
+    */
+    timeline = [];
+    var experiment_start_time = new Date();
+
+    /*
+    ===================================
+    INTRO & INSTRUCTION PROCEDURE
+    ====================================
+    */
+    //intro variables are defined in the function.js file
+    // if (runIntro == true) {
+    //     timeline.push(check_device, consent, survey, enter_fullscreen)
+    // }
+
+    /*
+    ===============================================================
+    TESTING PROCEDURE
+    ===============================================================
+    */
+    var ITI = {
+        type: 'html-keyboard-response',
+        stimulus: ' ',
+        trial_duration: Math.floor(Math.random() * (1000 - 500 + 1)) + 500,
+    }
+
+    trialNum = 1;
+    function pushTrial(thisTestObjEndPos, thisStripeAngle, thisTestObjLength) {
+        //furrowDispCreator is a separate plugin as a js file
+        var trial = {
+            type: 'furrowDispCreator',
+            furrowMode: paramsGeneral.furrowMode,
+            objEndPosRelativeToStart: thisTestObjEndPos,
+            stripeAngle: thisStripeAngle, //thisStripeAngle, -thisStripeAngle],
+            objWidth: thisTestObjLength,
+            fixationSide: ['left', 'right'][Math.floor(Math.random() * 2)], //randomly choose left or right
+            //General parameters//
+            stripeWidth: paramsGeneral.stripeWidth,
+            cycleNumber: paramsGeneral.cycleNumber,
+            objHeight: paramsGeneral.testObjHeight,
+            objSpeed: paramsGeneral.targetObjSpeed,
+            objMotionRange: paramsGeneral.targetObjMotionRange,
+            data: { trial_category: 'display' },
+        }
+
+        var test = {
+            type: 'sizeReproductionTask',
+            controlMode: 'keys',
+            instructionText: '<div style="font-size: 32px;">Use up and down arrow keys to resize the object below to match the size of the moving object.</div>',
+            position: function (position) {
+                allDisplayData = jsPsych.data.get().filter({ trial_category: 'display' }).values();
+                var lastDisplayTrial = allDisplayData[allDisplayData.length - 1];
+                return lastDisplayTrial.objEndPosPxActualized;
+            },
+            objHeight: paramsGeneral.testObjHeight,
+            data: { trial_category: 'test' },
+            initialObjLength: paramsGeneral.testObjLength, //can be bigger or smaller than the trial object length
+            on_finish: function (data) {
+                // Get all data and filter for display trials
+                allDisplayData = jsPsych.data.get().filter({ trial_category: 'display' }).values();
+                displayData = allDisplayData[allDisplayData.length - 1];
+                data.trialNum = trialNum;
+                trialNum++;
+
+                data.stripeAngle = displayData.stripeAngle;
+                data.targetObjShape = displayData.objShape;
+                data.testObjLength = displayData.objWidth;
+                data.targetObjHeight = displayData.objHeight;
+                data.targetObjEndPos = displayData.objEndPosRelativeToStart;
+                data.targetObjEndPosPx = displayData.objEndPosPxActualized;
+                data.targetObjStartPosPx = displayData.objStartPosPx;
+                data.targetObjMotionRange = displayData.objMotionRangeSet;
+                data.targetObjCycleNumber = displayData.cycleNumberActualized;
+                data.targetMotionTotalTrajectoryLength = displayData.totalTrajectoryPx;
+                data.targetObjSpeedSet = displayData.objSpeedSet;
+                data.targetObjSpeedActualized = displayData.objSpeedActualized;
+                data.targetObjDisplayDuration = displayData.displayDurationActualized;
+                data.fixationSide = displayData.fixationSide;
+                data.fixationPosPx = displayData.fixationLocation;
+                data.fixationDuration = displayData.fixationDuration;
+                data.furrowStripeWidth = displayData.stripeWidth;
+            },
+        }
+        timeline.push(trial, cursor_off, test, ITI);
+    }
+
+    // push all trials to the timeline from conditions (defined in params_general.js)
+    for (let i = 0; i < totalTrialNum; i++) {
+        pushTrial(conditions.targetObjEndPos[i], conditions.stripeAngle[i], conditions.targetObjWidth[i])
+    }
+
+
+
+    /*
+    ===============================================================
+    CLOSING PROCEDURE
+    ===============================================================
+    */
+    //closing variables are in the functions.js file
+    timeline.push(cursor_on, finishing, debreif_qs);
+
+    /*
+    ===============================================================
+    DATA DOWNLOAD PROCEDURE
+    ===============================================================
+    */
+    var data_download = {
+        type: 'html-keyboard-response',
+
+        stimulus: function () {
+            var fullData = jsPsych.data.get();
+            var testData = fullData.filter({ trial_category: 'test' });
+            window.fullDataCSV = fullData.csv();
+            window.testDataCSV = testData.csv();
+            window.summaryDataCSV = createSummaryData(fullData, testData);
+            return `<div style='display: inline-block; color: black; margin: 0 auto; padding: 10px 200px 10px 200px; text-align: left'><h3>Data Download</h3><p>Please download the following CSV files:</p><div style="margin: 20px 0;"><button id="download-full" style="margin: 10px; padding: 10px 20px; background-color: #4CAF50; color: black; border: none; border-radius: 4px; cursor: pointer;">Download Full Data</button><button id="download-filtered" style="margin: 10px; padding: 10px 20px; background-color: #2196F3; color: black; border: none; border-radius: 4px; cursor: pointer;">Download Filtered Data</button><button id="download-summary" style="margin: 10px; padding: 10px 20px; background-color: #FF9800; color: black; border: none; border-radius: 4px; cursor: pointer;">Download Summary Data</button></div><p>Click "Continue" after downloading the files to proceed to the completion page.</p></div>`;
+        },
+        choices: ['c'],
+        prompt: '<div style="color: black;">Press "c" to continue after downloading</div>',
+        data: { trial_category: 'Other' },
+        on_start: function () {
+            setTimeout(() => {
+                document.getElementById('download-full').onclick = () => downloadCSV(window.fullDataCSV, 'full_' + participantID + '.csv');
+                document.getElementById('download-filtered').onclick = () => downloadCSV(window.testDataCSV, 'filtered_' + participantID + '.csv');
+                document.getElementById('download-summary').onclick = () => downloadCSV(window.summaryDataCSV, 'summary_' + participantID + '.csv');
+            }, 100);
+        }
+    };
+
+    // Function to create summary data
+    function createSummaryData(fullData, testData) {
+        var participantInfo = fullData.values()[0];
+        var participantId = participantInfo.participantID || 'unknown';
+        var gender = participantInfo.gender || 'unknown';
+        var age = participantInfo.age || 'unknown';
+        var attention = participantInfo.attentionScore || 'unknown';
+        var date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
+        // Use factorLevels directly - no hardcoding needed!
+        var conditionVars = Object.keys(factorLevels);
+        var conditionGroups = {};
+
+        testData.values().forEach(function (trial) {
+            // Handle stripe angle array by taking the first value or converting to string
+            var keyValues = conditionVars.map(v => {
+                var value = trial[v];
+                if (Array.isArray(value)) {
+                    return value[0]; // Take first element of array
+                }
+                return value;
+            });
+            var key = keyValues.join('_');
+            if (!conditionGroups[key]) {
+                conditionGroups[key] = { values: keyValues, responses: [] };
+            }
+            conditionGroups[key].responses.push(trial.testObjectFinalLength);
+        });
+
+        var rows = ['participantId,' + conditionVars.join(',') + ',meanResponse,sdResponse,nTrials,gender,age,attention,date'];
+
+        Object.keys(conditionGroups).forEach(function (key) {
+            var group = conditionGroups[key];
+            var meanResp = calculateMean(group.responses); //in functions.js
+            var sdResp = calculateSD(group.responses); //in functions.js
+            rows.push([participantId].concat(group.values).concat([round(meanResp, 2), round(sdResp, 2), group.responses.length, gender, age, attention, date]).join(','));
+        });
+
+        return rows.join('\n');
+    }
+
+
+    // Function to download CSV
+    function downloadCSV(csvContent, filename) {
+        var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        var link = document.createElement('a');
+        var url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    timeline.push(data_download);
+
+
+    /*
+    ===============================================================
+    INITIALIZE EXPERIMENT
+    ===============================================================
+    */
+    jsPsych.init({
+        timeline: timeline,
+        on_interaction_data_update: function (data) {
+            viewport_width = get_viewport_size().width;
+            viewport_height = get_viewport_size().height;
+            data.screen_width = viewport_width;
+            data.screen_height = viewport_height;
+
+            // Only check for fullscreen exit if fullscreen has been activated
+            if (fullscreenActive && exp_complete == false) {
+                if (JSON.stringify(data).includes('blur') || JSON.stringify(data).includes('fullscreenexit')) {
+                    data.fullscreen_exited = true;  // Flag for fullscreen exit
+
+                    // Show a warning and a button to re-enter fullscreen
+                    if (!document.getElementById('fullscreen-warning')) {
+                        var warningDiv = document.createElement('div');
+                        warningDiv.id = 'fullscreen-warning';
+                        warningDiv.style.position = 'fixed';
+                        warningDiv.style.top = '0';
+                        warningDiv.style.left = '0';
+                        warningDiv.style.width = '100%';
+                        warningDiv.style.height = '100%';
+                        warningDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.9)'; // Red background
+                        warningDiv.style.zIndex = '9999';
+                        warningDiv.style.display = 'flex';
+                        warningDiv.style.flexDirection = 'column';
+                        warningDiv.style.justifyContent = 'center';
+                        warningDiv.style.alignItems = 'center';
+                        warningDiv.style.color = 'white';
+                        warningDiv.innerHTML = `
+                                <p style="font-size: 24px;">You have exited fullscreen mode. Please return to fullscreen to continue.</p>
+                                <button id="return-fullscreen" style="font-size: 18px; padding: 10px 20px;">Return to Fullscreen</button>
+                            `;
+                        document.body.appendChild(warningDiv);
+
+                        // Add event listener to the button to re-enter fullscreen
+                        document.getElementById('return-fullscreen').addEventListener('click', function () {
+                            document.documentElement.requestFullscreen();
+                        });
+                    }
+                } else {
+                    // If they are back in fullscreen, remove the warning
+                    var warningDiv = document.getElementById('fullscreen-warning');
+                    if (warningDiv) {
+                        document.body.removeChild(warningDiv);
+                    }
+                }
+            }
+        },
+    })
+</script>
+</body>
+
+</html>

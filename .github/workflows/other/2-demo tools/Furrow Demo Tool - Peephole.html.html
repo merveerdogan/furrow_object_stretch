@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Furrow Background + Moving Shapes</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            --bg: #0e1117;
+            --panel: #141a24;
+            --ink: #e6edf7;
+            --muted: #9aa3b2;
+            --edge: #2a3345;
+            --accent: #7bd88f;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font: 13px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .page {
+            height: 100%;
+            display: grid;
+            place-items: center;
+            padding: 12px;
+        }
+
+        .shell {
+            display: grid;
+            grid-template-columns: minmax(320px, 520px) 320px auto;
+            /* third column for cross */
+            gap: 10px;
+            align-items: start;
+        }
+
+
+        .card {
+            background: linear-gradient(180deg, #161c27, #111620);
+            border: 1px solid var(--edge);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .04);
+        }
+
+        .canvasCard {
+            padding: 8px;
+        }
+
+        canvas {
+            background: transparent;
+            display: block;
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+
+        .panel {
+            padding: 10px 12px;
+        }
+
+        h1 {
+            font-size: 15px;
+            margin: 0 0 8px 0;
+            letter-spacing: .2px;
+        }
+
+        .group {
+            border-top: 1px dashed #253049;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+            margin: 6px 0;
+        }
+
+        label {
+            color: var(--muted);
+        }
+
+        input[type="range"],
+        select {
+            width: 170px;
+        }
+
+        .val {
+            color: var(--muted);
+            min-width: 48px;
+            text-align: right;
+        }
+
+        .btns {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        button {
+            background: #0f1422;
+            border: 1px solid var(--edge);
+            color: var(--ink);
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            border-color: #3a4460;
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        .fixCross {
+            color: red;
+            font-size: 100px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            /* vertical center */
+            justify-content: center;
+            /* horizontal center */
+            height: 100%;
+            /* fill the full column */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <div class="shell">
+            <div class="card canvasCard">
+                <canvas id="cv" width="520" height="520" aria-label="Furrow + Shapes"></canvas>
+            </div>
+
+            <div class="card panel">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;">
+                    <h1>Controls</h1>
+                    <div class="btns">
+                        <button id="pauseBtn">Pause</button>
+                        <button id="resetBtn">Reset</button>
+                    </div>
+                </div>
+
+                <div class="group">
+                    <div class="row">
+                        <label for="angleL" id="angleLLabel">Left stripe angle (°)</label>
+                        <div><input id="angleL" type="range" min="-85" max="85" step="1" value="45">
+                            <span class="val" id="angleLVal">45°</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label for="angleR" id="angleRLabel">Right stripe angle (°)</label>
+                        <div><input id="angleR" type="range" min="-85" max="85" step="1" value="45">
+                            <span class="val" id="angleRVal">45°</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label for="period" id="periodLabel">Stripe frequency (px / cycle)</label>
+                        <div><input id="period" type="range" min="6" max="80" step="2" value="20">
+                            <span class="val" id="periodVal">20</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label for="contrast" id="contrastLabel">Stripe contrast</label>
+                        <div><input id="contrast" type="range" min="0" max="100" step="1" value="85">
+                            <span class="val" id="contrastVal">0.85</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="group">
+                    <div class="row">
+                        <label for="speed">Object speed</label>
+                        <div><input id="speed" type="range" min="0" max="400" step="5" value="120">
+                            <span class="val" id="speedVal">120</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label for="range">Motion range</label>
+                        <div><input id="range" type="range" min="60" max="240" step="5" value="150">
+                            <span class="val" id="rangeVal">150</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="group">
+                    <div class="row">
+                        <label for="size">Shape size</label>
+                        <div><input id="size" type="range" min="30" max="700" step="2" value="50">
+                            <span class="val" id="sizeVal">100</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label for="icolor">Shape Color (Black-White)</label>
+                        <div><input id="icolor" type="range" min="0" max="255" step="1" value="128">
+                            <span class="val" id="icolorVal">128</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label for="filled">Unfilled (outline only)</label>
+                        <div><input id="filled" type="checkbox"></div>
+                    </div>
+                    <div class="row">
+                        <label for="stripeMotion">Peephole</label>
+                        <div><input id="stripeMotion" type="checkbox"></div>
+                    </div>
+                    <div class="row">
+                        <label for="referenceObject">Reference object</label>
+                        <div><input id="referenceObject" type="checkbox"></div>
+                    </div>
+                    <div class="row">
+                        <label for="referenceColumns">Reference columns</label>
+                        <div><input id="referenceColumns" type="checkbox"></div>
+                    </div>
+                    <div class="row">
+                        <label for="refOffset">Reference object offset (px)</label>
+                        <div><input id="refOffset" type="range" min="0" max="200" step="5" value="50">
+                            <span class="val" id="refOffsetVal">50</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label for="objectType">Object Type</label>
+                        <div>
+                            <select id="objectType">
+                                <option value="circle">Circle</option>
+                                <option value="square">Square</option>
+                                <option value="triangle">Triangle</option>
+                                <option value="heart">Heart</option>
+                                <option value="horizontalLine">Horizontal Line</option>
+                                <option value="verticalLine">Vertical Line</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="fixCross">+</div>
+        </div>
+    </div>
+
+    <script>
+        const cv = document.getElementById('cv');
+        const cx = cv.getContext('2d');
+
+        const ui = {
+            angleL: document.getElementById('angleL'),
+            angleR: document.getElementById('angleR'),
+            period: document.getElementById('period'),
+            contrast: document.getElementById('contrast'),
+            speed: document.getElementById('speed'),
+            range: document.getElementById('range'),
+            size: document.getElementById('size'),
+            icolor: document.getElementById('icolor'),
+            filled: document.getElementById('filled'),
+            stripeMotion: document.getElementById('stripeMotion'),
+            referenceObject: document.getElementById('referenceObject'),
+            referenceColumns: document.getElementById('referenceColumns'),
+            refOffset: document.getElementById('refOffset'),
+            objectType: document.getElementById('objectType'),
+            pauseBtn: document.getElementById('pauseBtn'),
+            resetBtn: document.getElementById('resetBtn'),
+        };
+        const lab = {
+            angleL: document.getElementById('angleLVal'),
+            angleR: document.getElementById('angleRVal'),
+            period: document.getElementById('periodVal'),
+            contrast: document.getElementById('contrastVal'),
+            speed: document.getElementById('speedVal'),
+            range: document.getElementById('rangeVal'),
+            size: document.getElementById('sizeVal'),
+            icolor: document.getElementById('icolorVal'),
+            refOffset: document.getElementById('refOffsetVal'),
+        };
+        const labels = {
+            angleL: document.getElementById('angleLLabel'),
+            angleR: document.getElementById('angleRLabel'),
+            period: document.getElementById('periodLabel'),
+            contrast: document.getElementById('contrastLabel'),
+        };
+
+        const CONTROL_IDS = ['angleL', 'angleR', 'period', 'contrast', 'speed', 'range', 'size', 'icolor', 'objectType', 'refOffset'];
+        const DEFAULTS = Object.fromEntries(CONTROL_IDS.map(id => [id, ui[id].value]));
+
+        let running = true;
+        let y = cv.height / 2;
+        let x = cv.width / 2; // Object X position for free movement
+        let dir = 1;
+        let stripeOffset = 0;
+        let lastT = performance.now();
+
+
+        const tile = document.createElement('canvas');
+        const tctx = tile.getContext('2d');
+
+        function buildStripeTile(periodPx, contrast01) {
+            const size = Math.max(64, periodPx * 4);
+            tile.width = size; tile.height = size;
+            tctx.clearRect(0, 0, size, size);
+            const hi = Math.round(contrast01 * 255);
+            const lo = 0;
+            for (let yy = 0; yy < size; yy += periodPx) {
+                tctx.fillStyle = `rgb(${hi},${hi},${hi})`;
+                tctx.fillRect(0, yy, size, periodPx / 2);
+                tctx.fillStyle = `rgb(${lo},${lo},${lo})`;
+                tctx.fillRect(0, yy + periodPx / 2, size, periodPx / 2);
+            }
+        }
+        buildStripeTile(+ui.period.value, +ui.contrast.value / 100);
+
+        function params() {
+            return {
+                angleL: +ui.angleL.value,
+                angleR: +ui.angleR.value,
+                period: +ui.period.value,
+                contrast: +ui.contrast.value / 100,
+                speed: +ui.speed.value,
+                range: +ui.range.value,
+                size: +ui.size.value,
+                filled: !ui.filled.checked, // checkbox means unfilled when checked
+                stripeMotion: ui.stripeMotion.checked,
+                referenceObject: ui.referenceObject.checked,
+                referenceColumns: ui.referenceColumns.checked,
+                refOffset: +ui.refOffset.value,
+                colorGray: +ui.icolor.value,
+                objectType: ui.objectType.value
+            };
+        }
+
+        function drawHalfStripes(angleDeg, side, offset = 0) {
+            const pattern = cx.createPattern(tile, 'repeat');
+            cx.save();
+            if (side === 'left') {
+                cx.beginPath();
+                cx.rect(0, 0, cv.width / 2, cv.height);
+                cx.clip();
+            } else {
+                cx.beginPath();
+                cx.rect(cv.width / 2, 0, cv.width / 2, cv.height);
+                cx.clip();
+            }
+            cx.translate(cv.width / 2, cv.height / 2);
+            cx.rotate(angleDeg * Math.PI / 180);
+            cx.translate(-cv.width / 2, -cv.height / 2 + offset);
+            cx.fillStyle = pattern;
+            cx.fillRect(-cv.width, -cv.height, cv.width * 3, cv.height * 3);
+            cx.restore();
+        }
+
+        function drawVerticalLine(cx0, cy0, length, color, lw = 6) {
+            cx.strokeStyle = color;
+            cx.lineWidth = lw;
+            cx.beginPath();
+            cx.moveTo(cx0, cy0 - length / 2);
+            cx.lineTo(cx0, cy0 + length / 2);
+            cx.stroke();
+        }
+
+        function drawHorizontalLine(cx0, cy0, length, color, lw = 6) {
+            cx.strokeStyle = color;
+            cx.lineWidth = lw;
+            cx.beginPath();
+            cx.moveTo(cx0 - length / 2, cy0);
+            cx.lineTo(cx0 + length / 2, cy0);
+            cx.stroke();
+        }
+
+        function drawCircle(cx0, cy0, diameter, color, filled) {
+            const r = diameter / 2;
+            cx.beginPath();
+            cx.arc(cx0, cy0, r, 0, Math.PI * 2);
+            if (filled) {
+                cx.fillStyle = color;
+                cx.fill();
+            } else {
+                cx.strokeStyle = color;
+                cx.lineWidth = 6;
+                cx.stroke();
+            }
+        }
+
+        function drawSquare(cx0, cy0, side, color, filled) {
+            const x = cx0 - side / 2;
+            const y = cy0 - side / 2;
+            if (filled) {
+                cx.fillStyle = color;
+                cx.fillRect(x, y, side, side);
+            } else {
+                cx.strokeStyle = color;
+                cx.lineWidth = 6;
+                cx.strokeRect(x, y, side, side);
+            }
+        }
+
+        function drawStripedCircle(cx0, cy0, diameter, angleDeg, periodPx, contrast01) {
+            const r = diameter / 2;
+            cx.save();
+
+            // Create clipping path for circle
+            cx.beginPath();
+            cx.arc(cx0, cy0, r, 0, Math.PI * 2);
+            cx.clip();
+
+            // Create stripe pattern
+            const pattern = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleDeg * Math.PI / 180);
+            cx.translate(-cx0, -cy0);
+            cx.fillStyle = pattern;
+            cx.fillRect(cx0 - r, cy0 - r, diameter, diameter);
+
+            cx.restore();
+        }
+
+        function drawStripedSquare(cx0, cy0, side, angleDeg, periodPx, contrast01) {
+            const x = cx0 - side / 2;
+            const y = cy0 - side / 2;
+            cx.save();
+
+            // Create clipping path for square
+            cx.beginPath();
+            cx.rect(x, y, side, side);
+            cx.clip();
+
+            // Create stripe pattern
+            const pattern = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleDeg * Math.PI / 180);
+            cx.translate(-cx0, -cy0);
+            cx.fillStyle = pattern;
+            cx.fillRect(x - side / 2, y - side / 2, side * 2, side * 2);
+
+            cx.restore();
+        }
+
+        function drawStripedLine(cx0, cy0, length, isVertical, angleDeg, periodPx, contrast01) {
+            cx.save();
+
+            // Create clipping path for line
+            cx.beginPath();
+            if (isVertical) {
+                cx.rect(cx0 - 3, cy0 - length / 2, 6, length);
+            } else {
+                cx.rect(cx0 - length / 2, cy0 - 3, length, 6);
+            }
+            cx.clip();
+
+            // Create stripe pattern
+            const pattern = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleDeg * Math.PI / 180);
+            cx.translate(-cx0, -cy0);
+            cx.fillStyle = pattern;
+            cx.fillRect(cx0 - length, cy0 - length, length * 2, length * 2);
+
+            cx.restore();
+        }
+
+        function drawTriangle(cx0, cy0, size, color, filled) {
+            const height = size;
+            const width = size;
+            cx.save();
+
+            cx.beginPath();
+            cx.moveTo(cx0, cy0 - height / 2); // top point
+            cx.lineTo(cx0 - width / 2, cy0 + height / 2); // bottom left
+            cx.lineTo(cx0 + width / 2, cy0 + height / 2); // bottom right
+            cx.closePath();
+
+            if (filled) {
+                cx.fillStyle = color;
+                cx.fill();
+            } else {
+                cx.strokeStyle = color;
+                cx.lineWidth = 6;
+                cx.stroke();
+            }
+
+            cx.restore();
+        }
+
+        function drawHeart(cx0, cy0, size, color, filled) {
+            const scale = size / 100;
+            cx.save();
+
+            cx.beginPath();
+            // More symmetrical heart shape using mathematical heart curve
+            const t = 0;
+            const x = 16 * Math.pow(Math.sin(t), 3) * scale;
+            const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale;
+            cx.moveTo(cx0 + x, cy0 + y);
+
+            // Draw heart curve
+            for (let t = 0; t <= 2 * Math.PI; t += 0.1) {
+                const x = 16 * Math.pow(Math.sin(t), 3) * scale;
+                const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale;
+                cx.lineTo(cx0 + x, cy0 + y);
+            }
+            cx.closePath();
+
+            if (filled) {
+                cx.fillStyle = color;
+                cx.fill();
+            } else {
+                cx.strokeStyle = color;
+                cx.lineWidth = 6;
+                cx.stroke();
+            }
+
+            cx.restore();
+        }
+
+        function drawPeepholeTriangle(cx0, cy0, size, angleL, angleR, offset = 0) {
+            const height = size;
+            const width = size;
+            cx.save();
+
+            // Create clipping path for triangle
+            cx.beginPath();
+            cx.moveTo(cx0, cy0 - height / 2); // top point
+            cx.lineTo(cx0 - width / 2, cy0 + height / 2); // bottom left
+            cx.lineTo(cx0 + width / 2, cy0 + height / 2); // bottom right
+            cx.closePath();
+            cx.clip();
+
+            // Draw left half stripes (left side of triangle)
+            cx.save();
+            cx.beginPath();
+            cx.moveTo(cx0, cy0 - height / 2); // top point
+            cx.lineTo(cx0, cy0 + height / 2); // center line (vertical split)
+            cx.lineTo(cx0 - width / 2, cy0 + height / 2); // bottom left
+            cx.closePath();
+            cx.clip();
+            const patternL = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleL * Math.PI / 180);
+            cx.translate(-cx0, -cy0 + offset);
+            cx.fillStyle = patternL;
+            cx.fillRect(cx0 - width, cy0 - height, width * 2, height * 2);
+            cx.restore();
+
+            // Draw right half stripes (right side of triangle)
+            cx.save();
+            cx.beginPath();
+            cx.moveTo(cx0, cy0 - height / 2); // top point
+            cx.lineTo(cx0, cy0 + height / 2); // center line (vertical split)
+            cx.lineTo(cx0 + width / 2, cy0 + height / 2); // bottom right
+            cx.closePath();
+            cx.clip();
+            const patternR = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleR * Math.PI / 180);
+            cx.translate(-cx0, -cy0 + offset);
+            cx.fillStyle = patternR;
+            cx.fillRect(cx0 - width, cy0 - height, width * 2, height * 2);
+            cx.restore();
+
+            cx.restore();
+        }
+
+        function drawPeepholeHeart(cx0, cy0, size, angleL, angleR, offset = 0) {
+            const scale = size / 100;
+            cx.save();
+
+            // Create clipping path for heart using mathematical heart curve
+            cx.beginPath();
+            for (let t = 0; t <= 2 * Math.PI; t += 0.1) {
+                const x = 16 * Math.pow(Math.sin(t), 3) * scale;
+                const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale;
+                if (t === 0) {
+                    cx.moveTo(cx0 + x, cy0 + y);
+                } else {
+                    cx.lineTo(cx0 + x, cy0 + y);
+                }
+            }
+            cx.closePath();
+            cx.clip();
+
+            // Draw left half stripes
+            cx.save();
+            cx.beginPath();
+            // Create left half clipping path
+            for (let t = 0; t <= Math.PI; t += 0.1) {
+                const x = 16 * Math.pow(Math.sin(t), 3) * scale;
+                const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale;
+                if (t === 0) {
+                    cx.moveTo(cx0 + x, cy0 + y);
+                } else {
+                    cx.lineTo(cx0 + x, cy0 + y);
+                }
+            }
+            // Add center line to close the left half
+            cx.lineTo(cx0, cy0 + 15 * scale);
+            cx.closePath();
+            cx.clip();
+
+            const patternL = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleL * Math.PI / 180);
+            cx.translate(-cx0, -cy0 + offset);
+            cx.fillStyle = patternL;
+            cx.fillRect(cx0 - 100 * scale, cy0 - 100 * scale, 200 * scale, 200 * scale);
+            cx.restore();
+
+            // Draw right half stripes
+            cx.save();
+            cx.beginPath();
+            // Create right half clipping path
+            for (let t = Math.PI; t <= 2 * Math.PI; t += 0.1) {
+                const x = 16 * Math.pow(Math.sin(t), 3) * scale;
+                const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * scale;
+                if (t === Math.PI) {
+                    cx.moveTo(cx0 + x, cy0 + y);
+                } else {
+                    cx.lineTo(cx0 + x, cy0 + y);
+                }
+            }
+            // Add center line to close the right half
+            cx.lineTo(cx0, cy0 + 15 * scale);
+            cx.closePath();
+            cx.clip();
+
+            const patternR = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleR * Math.PI / 180);
+            cx.translate(-cx0, -cy0 + offset);
+            cx.fillStyle = patternR;
+            cx.fillRect(cx0 - 100 * scale, cy0 - 100 * scale, 200 * scale, 200 * scale);
+            cx.restore();
+
+            cx.restore();
+        }
+
+        function drawPeepholeCircle(cx0, cy0, diameter, angleL, angleR, offset = 0) {
+            const r = diameter / 2;
+            cx.save();
+
+            // Create clipping path for circle
+            cx.beginPath();
+            cx.arc(cx0, cy0, r, 0, Math.PI * 2);
+            cx.clip();
+
+            // Draw left half stripes
+            cx.save();
+            cx.beginPath();
+            cx.rect(cx0 - r, cy0 - r, r, diameter);
+            cx.clip();
+            const patternL = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleL * Math.PI / 180);
+            cx.translate(-cx0, -cy0 + offset);
+            cx.fillStyle = patternL;
+            cx.fillRect(cx0 - r * 2, cy0 - r * 2, diameter * 2, diameter * 2);
+            cx.restore();
+
+            // Draw right half stripes
+            cx.save();
+            cx.beginPath();
+            cx.rect(cx0, cy0 - r, r, diameter);
+            cx.clip();
+            const patternR = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleR * Math.PI / 180);
+            cx.translate(-cx0, -cy0 + offset);
+            cx.fillStyle = patternR;
+            cx.fillRect(cx0 - r * 2, cy0 - r * 2, diameter * 2, diameter * 2);
+            cx.restore();
+
+            cx.restore();
+        }
+
+        function drawPeepholeSquare(cx0, cy0, side, angleL, angleR, offset = 0) {
+            const x = cx0 - side / 2;
+            const y = cy0 - side / 2;
+            cx.save();
+
+            // Create clipping path for square
+            cx.beginPath();
+            cx.rect(x, y, side, side);
+            cx.clip();
+
+            // Draw left half stripes
+            cx.save();
+            cx.beginPath();
+            cx.rect(x, y, side / 2, side);
+            cx.clip();
+            const patternL = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleL * Math.PI / 180);
+            cx.translate(-cx0, -cy0 + offset);
+            cx.fillStyle = patternL;
+            cx.fillRect(x - side / 2, y - side / 2, side * 2, side * 2);
+            cx.restore();
+
+            // Draw right half stripes
+            cx.save();
+            cx.beginPath();
+            cx.rect(x + side / 2, y, side / 2, side);
+            cx.clip();
+            const patternR = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleR * Math.PI / 180);
+            cx.translate(-cx0, -cy0 + offset);
+            cx.fillStyle = patternR;
+            cx.fillRect(x - side / 2, y - side / 2, side * 2, side * 2);
+            cx.restore();
+
+            cx.restore();
+        }
+
+        function drawPeepholeLine(cx0, cy0, length, isVertical, angleL, angleR, offset = 0) {
+            cx.save();
+
+            // Create clipping path for line
+            cx.beginPath();
+            if (isVertical) {
+                cx.rect(cx0 - 3, cy0 - length / 2, 6, length);
+            } else {
+                cx.rect(cx0 - length / 2, cy0 - 3, length, 6);
+            }
+            cx.clip();
+
+            // Draw left half stripes (always split horizontally regardless of line orientation)
+            cx.save();
+            cx.beginPath();
+            if (isVertical) {
+                // For vertical lines, left half is left side of the line
+                cx.rect(cx0 - 3, cy0 - length / 2, 3, length);
+            } else {
+                // For horizontal lines, left half is left side of the line
+                cx.rect(cx0 - length / 2, cy0 - 3, length / 2, 6);
+            }
+            cx.clip();
+            const patternL = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleL * Math.PI / 180);
+            cx.translate(-cx0, -cy0 + offset);
+            cx.fillStyle = patternL;
+            cx.fillRect(cx0 - length, cy0 - length, length * 2, length * 2);
+            cx.restore();
+
+            // Draw right half stripes (always split horizontally regardless of line orientation)
+            cx.save();
+            cx.beginPath();
+            if (isVertical) {
+                // For vertical lines, right half is right side of the line
+                cx.rect(cx0, cy0 - length / 2, 3, length);
+            } else {
+                // For horizontal lines, right half is right side of the line
+                cx.rect(cx0, cy0 - 3, length / 2, 6);
+            }
+            cx.clip();
+            const patternR = cx.createPattern(tile, 'repeat');
+            cx.translate(cx0, cy0);
+            cx.rotate(angleR * Math.PI / 180);
+            cx.translate(-cx0, -cy0 + offset);
+            cx.fillStyle = patternR;
+            cx.fillRect(cx0 - length, cy0 - length, length * 2, length * 2);
+            cx.restore();
+
+            cx.restore();
+        }
+
+
+
+        function drawReferenceObject(x, y, size, color, objectType, filled) {
+            if (objectType === "verticalLine") {
+                drawVerticalLine(x, y, size, color);
+            } else if (objectType === "horizontalLine") {
+                drawHorizontalLine(x, y, size, color);
+            } else if (objectType === "circle") {
+                drawCircle(x, y, size, color, filled);
+            } else if (objectType === "square") {
+                drawSquare(x, y, size, color, filled);
+            } else if (objectType === "triangle") {
+                drawTriangle(x, y, size, color, filled);
+            } else if (objectType === "heart") {
+                drawHeart(x, y, size, color, filled);
+            }
+        }
+
+        function drawReferenceColumns(color, objectX, objectY, objectSize, objectType) {
+            cx.strokeStyle = color;
+            cx.lineWidth = 4; // Increased line width for better visibility
+            cx.beginPath();
+
+            // Calculate left and right edges based on object type and size
+            let leftEdge, rightEdge;
+
+            if (objectType === "circle") {
+                leftEdge = objectX - objectSize / 2;
+                rightEdge = objectX + objectSize / 2;
+            } else if (objectType === "square") {
+                leftEdge = objectX - objectSize / 2;
+                rightEdge = objectX + objectSize / 2;
+            } else if (objectType === "triangle") {
+                leftEdge = objectX - objectSize / 2;
+                rightEdge = objectX + objectSize / 2;
+            } else if (objectType === "heart") {
+                // Heart is roughly circular in width
+                leftEdge = objectX - objectSize / 2;
+                rightEdge = objectX + objectSize / 2;
+            } else if (objectType === "verticalLine") {
+                leftEdge = objectX - 3; // Line width
+                rightEdge = objectX + 3;
+            } else if (objectType === "horizontalLine") {
+                leftEdge = objectX - objectSize / 2;
+                rightEdge = objectX + objectSize / 2;
+            }
+
+            // Draw left column at left edge of object
+            cx.moveTo(leftEdge, 0);
+            cx.lineTo(leftEdge, cv.height);
+            // Draw right column at right edge of object
+            cx.moveTo(rightEdge, 0);
+            cx.lineTo(rightEdge, cv.height);
+            cx.stroke();
+        }
+
+        function loop(t) {
+            const dt = Math.min(0.05, (t - lastT) / 1000);
+            lastT = t;
+
+            const P = params();
+
+            if (running) {
+                // Simple object motion
+                x = cv.width / 2; // Keep object centered horizontally
+                const center = cv.height / 2;
+                const halfRange = P.range / 2;
+                y += dir * P.speed * dt;
+                if (y > center + halfRange) { y = center + halfRange; dir = -1; }
+                if (y < center - halfRange) { y = center - halfRange; dir = 1; }
+            }
+
+            cx.clearRect(0, 0, cv.width, cv.height);
+
+            const g = P.colorGray | 0;
+            const color = `rgb(${g},${g},${g})`;
+
+            if (P.stripeMotion) {
+                // Mode: Peephole - Solid background, object shows background stripes at its position
+
+                // Draw solid background
+                cx.fillStyle = color;
+                cx.fillRect(0, 0, cv.width, cv.height);
+
+                // Draw peephole object that shows background stripes
+                if (P.objectType === "verticalLine") {
+                    drawPeepholeLine(x, y, P.size, true, P.angleL, P.angleR, 0);
+                } else if (P.objectType === "horizontalLine") {
+                    drawPeepholeLine(x, y, P.size, false, P.angleL, P.angleR, 0);
+                } else if (P.objectType === "circle") {
+                    if (P.filled) {
+                        drawPeepholeCircle(x, y, P.size, P.angleL, P.angleR, 0);
+                    } else {
+                        // For unfilled circle, draw outline
+                        drawVerticalLine(x, y, P.size, color);
+                    }
+                } else if (P.objectType === "square") {
+                    if (P.filled) {
+                        drawPeepholeSquare(x, y, P.size, P.angleL, P.angleR, 0);
+                    } else {
+                        // For unfilled square, draw outline
+                        drawSquare(x, y, P.size, color, false);
+                    }
+                } else if (P.objectType === "triangle") {
+                    if (P.filled) {
+                        drawPeepholeTriangle(x, y, P.size, P.angleL, P.angleR, 0);
+                    } else {
+                        // For unfilled triangle, draw outline
+                        drawTriangle(x, y, P.size, color, false);
+                    }
+                } else if (P.objectType === "heart") {
+                    if (P.filled) {
+                        drawPeepholeHeart(x, y, P.size, P.angleL, P.angleR, 0);
+                    } else {
+                        // For unfilled heart, draw outline
+                        drawHeart(x, y, P.size, color, false);
+                    }
+                }
+
+                // Draw reference object if enabled
+                if (P.referenceObject) {
+                    const refY = y + P.refOffset; // Position below main object with adjustable offset
+                    // Use contrasting color in peephole mode (white outline on gray background)
+                    const refColor = P.stripeMotion ? 'darkgray' : color;
+                    drawReferenceObject(x, refY, P.size, refColor, P.objectType, P.filled);
+                }
+
+                // Draw reference columns if enabled
+                if (P.referenceColumns) {
+                    drawReferenceColumns("darkgray", x, y, P.size, P.objectType);
+                }
+            } else {
+                // Mode: Striped background, solid object
+
+                // Draw striped background
+                drawHalfStripes(P.angleL, 'left', 0);
+                drawHalfStripes(P.angleR, 'right', 0);
+
+                // Draw solid object
+                if (P.objectType === "verticalLine") {
+                    drawVerticalLine(x, y, P.size, color);
+                } else if (P.objectType === "horizontalLine") {
+                    drawHorizontalLine(x, y, P.size, color);
+                } else if (P.objectType === "circle") {
+                    drawCircle(x, y, P.size, color, P.filled);
+                } else if (P.objectType === "square") {
+                    drawSquare(x, y, P.size, color, P.filled);
+                } else if (P.objectType === "triangle") {
+                    drawTriangle(x, y, P.size, color, P.filled);
+                } else if (P.objectType === "heart") {
+                    drawHeart(x, y, P.size, color, P.filled);
+                }
+
+                // Draw reference object if enabled
+                if (P.referenceObject) {
+                    const refY = y + P.refOffset; // Position below main object with adjustable offset
+                    // Use contrasting color in peephole mode (white outline on gray background)
+                    const refColor = P.stripeMotion ? 'darkgray' : color;
+                    drawReferenceObject(x, refY, P.size, refColor, P.objectType, P.filled);
+                }
+
+                // Draw reference columns if enabled
+                if (P.referenceColumns) {
+                    drawReferenceColumns(color, x, y, P.size, P.objectType);
+                }
+            }
+
+            // Draw fixation cross (right side of controls panel area)
+
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+
+        function syncLabels() {
+            lab.angleL.textContent = `${ui.angleL.value}°`;
+            lab.angleR.textContent = `${ui.angleR.value}°`;
+            lab.period.textContent = ui.period.value;
+            lab.contrast.textContent = (+ui.contrast.value / 100).toFixed(2);
+            lab.speed.textContent = ui.speed.value;
+            lab.range.textContent = ui.range.value;
+            lab.size.textContent = ui.size.value;
+            lab.icolor.textContent = ui.icolor.value;
+            lab.refOffset.textContent = ui.refOffset.value;
+        }
+
+        function updateControlLabels() {
+            const isPeephole = ui.stripeMotion.checked;
+            if (isPeephole) {
+                labels.angleL.textContent = "Left stripe angle (°)";
+                labels.angleR.textContent = "Right stripe angle (°)";
+                labels.period.textContent = "Stripe frequency (px / cycle)";
+                labels.contrast.textContent = "Stripe contrast";
+            } else {
+                labels.angleL.textContent = "Left stripe angle (°)";
+                labels.angleR.textContent = "Right stripe angle (°)";
+                labels.period.textContent = "Stripe frequency (px / cycle)";
+                labels.contrast.textContent = "Stripe contrast";
+            }
+        }
+
+        ['angleL', 'angleR', 'period', 'contrast', 'speed', 'range', 'size', 'icolor', 'objectType', 'refOffset', 'filled', 'stripeMotion', 'referenceObject', 'referenceColumns']
+            .forEach(id => {
+                ui[id].addEventListener('input', () => {
+                    if (id === 'period' || id === 'contrast') {
+                        buildStripeTile(+ui.period.value, +ui.contrast.value / 100);
+                    }
+                    if (id === 'stripeMotion') {
+                        updateControlLabels();
+                    }
+                    syncLabels();
+                });
+            });
+        syncLabels();
+        updateControlLabels();
+
+        ui.pauseBtn.addEventListener('click', () => {
+            running = !running;
+            ui.pauseBtn.textContent = running ? 'Pause' : 'Resume';
+        });
+
+        ui.resetBtn.addEventListener('click', () => {
+            CONTROL_IDS.forEach(id => { ui[id].value = DEFAULTS[id]; });
+            ui.filled.checked = false; // default is filled
+            ui.stripeMotion.checked = false; // default is background stripes
+            ui.referenceObject.checked = false; // default is no reference object
+            ui.referenceColumns.checked = false; // default is no reference columns
+            buildStripeTile(+ui.period.value, +ui.contrast.value / 100);
+            syncLabels();
+            updateControlLabels();
+            x = cv.width / 2; y = cv.height / 2; dir = 1; stripeOffset = 0; running = true; ui.pauseBtn.textContent = 'Pause';
+        });
+
+    </script>
+</body>
+
+</html>
